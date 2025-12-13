@@ -22,17 +22,24 @@ class ReelsRequest(BaseModel):
 # Downloader (Watermark-aware)
 # -------------------------
 def download_video(url: str):
-    is_tiktok = "tiktok.com" in url.lower()
+    url_l = url.lower()
+    is_tiktok = "tiktok.com" in url_l
 
     ydl_opts = {
         "outtmpl": os.path.join(VIDEOS_DIR, "%(id)s.%(ext)s"),
         "merge_output_format": "mp4",
         "noplaylist": True,
         "quiet": True,
+        "postprocessors": [
+            {
+                "key": "FFmpegVideoConvertor",
+                "preferedformat": "mp4",
+            }
+        ],
     }
 
     if is_tiktok:
-        # ✅ TikTok NO watermark
+        # ✅ TikTok – no watermark
         ydl_opts.update({
             "format": "bv*+ba/best",
             "extractor_args": {
@@ -43,16 +50,16 @@ def download_video(url: str):
             }
         })
     else:
-        # Instagram / Facebook / Threads
+        # ✅ Facebook / Instagram / Threads
         ydl_opts.update({
-            "format": "bestvideo+bestaudio/best"
+            "format": "(bv*+ba/best)/best",
+            "merge_output_format": "mp4",
         })
 
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         filename = f"{info['id']}.mp4"
         return f"/videos/{filename}"
-
 # -------------------------
 # API ROUTES (FIRST)
 # -------------------------
