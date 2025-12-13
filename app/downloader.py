@@ -4,20 +4,20 @@ from yt_dlp import YoutubeDL
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VIDEOS_DIR = os.path.join(BASE_DIR, "videos")
 
+FFMPEG_PATH = "/usr/bin/ffmpeg"  # explicit path
+
 def download_video(url: str) -> str:
     url_l = url.lower()
     is_tiktok = "tiktok.com" in url_l
 
     ydl_opts = {
         "outtmpl": os.path.join(VIDEOS_DIR, "%(id)s.%(ext)s"),
-        "merge_output_format": "mp4",
         "noplaylist": True,
-        "quiet": True,
+        "quiet": False,  # 🔴 enable logs
+        "merge_output_format": "mp4",
+        "ffmpeg_location": FFMPEG_PATH,
         "postprocessors": [
-            {
-                "key": "FFmpegVideoConvertor",
-                "preferedformat": "mp4",
-            }
+            {"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}
         ],
     }
 
@@ -32,11 +32,11 @@ def download_video(url: str) -> str:
             }
         })
     else:
+        # 🔴 FORCE DASH MERGE
         ydl_opts.update({
-            "format": "(bv*+ba/best)/best",
+            "format": "bv*[vcodec!=none]+ba[acodec!=none]/best",
         })
 
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
-        filename = f"{info['id']}.mp4"
-        return f"/videos/{filename}"
+        return f"/videos/{info['id']}.mp4"
