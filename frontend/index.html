@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Social Video Downloader</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ Social Downloader</h1>
+    <p>Facebook · Instagram · Threads · TikTok</p>
+
+    <input id="urlInput" type="text" placeholder="Paste video link here…" />
+    <button id="downloadBtn">Download</button>
+
+    <div id="loading" class="hidden">Downloading…</div>
+
+    <div id="result" class="hidden">
+      <a id="downloadLink" href="#" download>
+        ⬇ Download Video
+      </a>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
