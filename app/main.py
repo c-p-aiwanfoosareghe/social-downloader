@@ -4,19 +4,23 @@ from pydantic import BaseModel, HttpUrl
 from yt_dlp import YoutubeDL
 from fastapi.staticfiles import StaticFiles
 
-app = FastAPI(title="Social Media Downloader")
+app = FastAPI(title="Universal Reel Downloader")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VIDEOS_DIR = os.path.join(BASE_DIR, "videos")
-FRONTEND_DIR = os.path.join(BASE_DIR, "..", "frontend")
-
+# -------------------------
+# Config
+# -------------------------
+VIDEOS_DIR = "videos"
 os.makedirs(VIDEOS_DIR, exist_ok=True)
 
-# ---------------- MODELS ----------------
-class DownloadRequest(BaseModel):
+# -------------------------
+# Models
+# -------------------------
+class ReelsRequest(BaseModel):
     url: HttpUrl
 
-# ---------------- DOWNLOAD LOGIC ----------------
+# -------------------------
+# Downloader (Watermark-aware)
+# -------------------------
 def download_video(url: str):
     is_tiktok = "tiktok.com" in url.lower()
 
@@ -25,11 +29,10 @@ def download_video(url: str):
         "merge_output_format": "mp4",
         "noplaylist": True,
         "quiet": True,
-        "nocheckcertificate": True,
     }
 
-    # 🔥 TikTok: force no-watermark formats
     if is_tiktok:
+        # ✅ TikTok NO watermark
         ydl_opts.update({
             "format": "bv*+ba/best",
             "extractor_args": {
@@ -48,6 +51,32 @@ def download_video(url: str):
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         filename = f"{info['id']}.mp4"
-        platform = info.get("extractor", "unknown")
+        return f"/videos/{filename}"
 
-        return f"/videos/{filename}", platform
+# -------------------------
+# API ROUTES (FIRST)
+# -------------------------
+@app.post("/scrape")
+def scrape(req: ReelsRequest):
+    try:
+        video_url = download_video(str(req.url))
+        return {
+            "ok": True,
+            "data": {
+                "url": str(req.url),
+                "status": "Downloaded successfully",
+                "video_url": video_url
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+# -------------------------
+# Static Files (LAST)
+# -------------------------
+app.mount("/videos", StaticFiles(directory=VIDEOS_DIR), name="videos")
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
