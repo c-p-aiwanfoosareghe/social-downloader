@@ -18,35 +18,36 @@ class DownloadRequest(BaseModel):
 
 # ---------------- DOWNLOAD LOGIC ----------------
 def download_video(url: str):
+    is_tiktok = "tiktok.com" in url.lower()
+
     ydl_opts = {
-        "format": "mp4/best",
         "outtmpl": os.path.join(VIDEOS_DIR, "%(id)s.%(ext)s"),
         "merge_output_format": "mp4",
         "noplaylist": True,
         "quiet": True,
+        "nocheckcertificate": True,
     }
+
+    # 🔥 TikTok: force no-watermark formats
+    if is_tiktok:
+        ydl_opts.update({
+            "format": "bv*+ba/best",
+            "extractor_args": {
+                "tiktok": {
+                    "api_hostname": "api16-normal-c-useast1a.tiktokv.com",
+                    "app_version": "26.1.3",
+                }
+            }
+        })
+    else:
+        # Instagram / Facebook / Threads
+        ydl_opts.update({
+            "format": "bestvideo+bestaudio/best"
+        })
 
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         filename = f"{info['id']}.mp4"
         platform = info.get("extractor", "unknown")
+
         return f"/videos/{filename}", platform
-
-# ---------------- API ----------------
-@app.post("/scrape")
-def scrape(req: DownloadRequest):
-    try:
-        video_url, platform = download_video(str(req.url))
-        return {
-            "ok": True,
-            "data": {
-                "platform": platform,
-                "video_url": video_url
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ---------------- STATIC ----------------
-app.mount("/videos", StaticFiles(directory=VIDEOS_DIR), name="videos")
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
