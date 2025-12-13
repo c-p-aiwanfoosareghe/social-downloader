@@ -1,44 +1,35 @@
-const btn = document.getElementById("downloadBtn");
-const input = document.getElementById("urlInput");
-const loading = document.getElementById("loading");
-const result = document.getElementById("result");
-const link = document.getElementById("downloadLink");
+async function download() {
+  const url = document.getElementById("url").value;
+  const status = document.getElementById("status");
 
-btn.addEventListener("click", async () => {
-  const url = input.value.trim();
-  if (!url) return alert("Paste a video link");
+  if (!url) {
+    status.textContent = "Please paste a link.";
+    return;
+  }
 
-  loading.classList.remove("hidden");
-  result.classList.add("hidden");
+  status.textContent = "Downloading...";
 
   try {
-    const res = await fetch("/scrape", {
+    const res = await fetch("/api/download", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url })
     });
 
-    const json = await res.json();
-    loading.classList.add("hidden");
+    const data = await res.json();
 
-    if (json.ok && json.data.video_url) {
-      link.href = json.data.video_url;
-      result.classList.remove("hidden");
-
-      // Auto-download on mobile
-      setTimeout(() => {
-        const a = document.createElement("a");
-        a.href = json.data.video_url;
-        a.download = "";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }, 500);
+    if (data.ok) {
+      const a = document.createElement("a");
+      a.href = data.video_url;
+      a.download = "";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      status.textContent = "Download complete!";
     } else {
-      alert("Download failed");
+      status.textContent = "Download failed.";
     }
-  } catch {
-    loading.classList.add("hidden");
-    alert("Server error");
+  } catch (err) {
+    status.textContent = "Error downloading.";
   }
-});
+}
