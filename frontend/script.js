@@ -3,7 +3,7 @@ async function download() {
   const status = document.getElementById("status");
 
   if (!url) {
-    status.textContent = "Please paste a link.";
+    status.textContent = "Paste a video link.";
     return;
   }
 
@@ -18,18 +18,22 @@ async function download() {
 
     const data = await res.json();
 
-    if (data.ok) {
-      const a = document.createElement("a");
-      a.href = data.video_url;
-      a.download = "";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      status.textContent = "Download complete!";
-    } else {
+    if (!data.ok) {
       status.textContent = "Download failed.";
+      return;
     }
-  } catch (err) {
-    status.textContent = "Error downloading.";
+
+    // 🔴 iOS SAFE DOWNLOAD
+    const a = document.createElement("a");
+    a.href = data.download_url;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    status.textContent = "Download completed. Check Safari downloads.";
+
+  } catch (e) {
+    status.textContent = "Error occurred.";
   }
 }
